@@ -1,0 +1,19 @@
+@import '../../App.scss';
+
+.menu-top {
+    display: flex;
+    button {
+        color: $c-primary;
+        &:hover {
+            color: dark($c-primary, 20);
+        }
+    }
+}
+.menu-top_left_logo {
+    height: 50px;
+    padding: 0 10px;
+}
+.menu-top_right {
+    position: absolute;
+    right: 0;
+}
