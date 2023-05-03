@@ -12,8 +12,9 @@ app.use(cors())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 const authRoutes = require('./src/routes/auth');
-const authRoutes = require('./src/routes/user');
+const userRoutes = require('./src/routes/user');
 
 app.use(`api/${API_VERSION}/}`, authRoutes)
 app.use(`api/${API_VERSION}/}`, userRoutes)
 
+module.exports = app
