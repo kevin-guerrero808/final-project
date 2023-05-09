@@ -1,13 +1,27 @@
 const bycriptjs = require('bcryptjs');
 const jwt = require('../utils/jwt');
 const User = require('../models/user')
+const axios = require('axios');
 
 
 const register = async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, department, municipio } = req.body;
 
-    if (!email) res.status('400').send({msg: "required email"})
-    if (!password) res.status('400').send({msg: "required email"})
+    if ( !email | !password | !department | !municipio ) {
+        return res.status(400).send({msg: "required field(s)"})
+    }
+
+    const municipios = await axios.get("https://www.datos.gov.co/resource/xdk5-pm3f.json").then(response => response.data);
+
+    // find municipio with a correct department
+    if (!municipios.some(municipioItem => municipioItem.departamento === department)) {
+        return res.status(404).send({msg: "Not department found"})
+    }
+
+    // find municipio with a correct department
+    if (!municipios.some(municipioItem => municipioItem.departamento === department && municipioItem.municipio === municipio)) {
+        return res.status(404).send({msg: "Not municipio found"})
+    }
 
     const salt = bycriptjs.genSaltSync(10)
     const hashPassword = bycriptjs.hashSync(password, salt)
@@ -18,7 +32,9 @@ const register = async (req, res) => {
         email: email.toLowerCase(),
         role: 'user',
         active: false,
-        password: hashPassword
+        password: hashPassword,
+        department: department,
+        municipio: municipio
     }
 
     const user = new User(userPayload);
@@ -72,6 +88,8 @@ const refreshAccessToken = (req, res) => {
         }
     }
 }
+
+// const findLocation(dep)
 
 
 module.exports = {

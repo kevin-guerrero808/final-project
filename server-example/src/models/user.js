@@ -10,7 +10,9 @@ const UserSchema = mongoose.Schema({
     password: String,
     role: String,
     active: Boolean,
-    avatar: String
+    avatar: String,
+    department: String,
+    municipio: String
 })
 
 module.exports = mongoose.model("User", UserSchema)
