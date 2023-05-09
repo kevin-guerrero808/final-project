@@ -1,62 +1,60 @@
 const bycriptjs = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const userModel = require('./models/user')
+const jwt = require('../utils/jwt');
+const User = require('../models/user')
 
 
-const register = (req, res) => {
-    const { firstName, lastName, email, password } = req.body();
+const register = async (req, res) => {
+    const { firstName, lastName, email, password } = req.body;
 
     if (!email) res.status('400').send({msg: "required email"})
     if (!password) res.status('400').send({msg: "required email"})
+
+    const salt = bycriptjs.genSaltSync(10)
+    const hashPassword = bycriptjs.hashSync(password, salt)
 
     const userPayload = {
         firstName: firstName,
         lastName: lastName,
         email: email.toLowerCase(),
         role: 'user',
-        active: false 
+        active: false,
+        password: hashPassword
     }
 
-    const salt = bycriptjs.getSaltSync(10)
-    const hashPassword = bcrypt.hashSync(password, salt)
-    userModel.password = hashPassword
+    const user = new User(userPayload);
 
-    const userModel = new userModel(userPayload);
-
-    userModel.save((err, userStoraged) => {
-        if (error) {
-            res.status(400).send({msg: 'Error to create user'})
-        } else {
-            res.status(200).send(userStoraged)
-        }
-    })
+    try {
+        const userStorage = await user.save()
+        res.status(201).send(userStorage)
+    } catch (error) {
+        res.status(400).send({ msg: 'Error to create the user' })
+    }
 
 }
 
-const login = (req, res) => {
+const login = async (req, res) => {
     const {email, password } = req.body;
-    if (!email) res.status(400).send({msg: "error from server"})
-    if (!password) res.status(400).send({ msg: "Password required"})
-    const emailLowerCase = email.toLowerCase();
-    userModel.findOne({ email: emailLowerCase }, (error, userStoraged) => {
-        if (error) {
-            res.status(500).send({ msg: "Error from server"})
-        } else {
-            bycriptjs.compare(password, userStoraged.password, (bcrytError, check) => {
-                if (bcryptError) {
-                    res.status(500).send({ msg: "Error from server"})
-                } else if (!check) {
-                    res.status(400).send({ msg: "User or password error"})
-                } else if (!userStoraged.active) {
-                    res.status(401).send({ msg: "User unauthorized or inactive"})
-                } else {
-                    res.status(200).send({
-                        access: jwt.createAccessToken(userStoraged)
-                    })
-                }
-            })
+    try {
+        if (!email || !password) throw new Error("Email and ")
+        const emailLowerCase = email.toLowerCase()
+        const user = await User.findOne({ email: emailLowerCase }).exec()
+        if (!user) {
+            throw new Error('Not found user')
         }
-    })
+        const check = await bycriptjs.compare(password, user.password)
+        if (!check) {
+            throw new Error('Incorreted password')
+        }
+        if (!user.active) {
+            throw new Error('Unauthorized user or inactive')
+        }
+        res.status(200).send({
+            access: jwt.createAccessToken(user),
+            refresh: jwt.createRefreshToken(user)
+        })
+    } catch(error) {
+        res.status(400).send({ msg: error.message })
+    }
     
 }
 
